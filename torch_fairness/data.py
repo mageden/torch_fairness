@@ -1,39 +1,4 @@
 
-"""
-There are three methods of formatting sensitive variables
-- Modified dummy coding: Majority=0, Minority=1, other=np.nan, K=Number of minority groups
-    - This is simple, as each column has what it needs to be calculated, however, it is not efficient as many operations
-      explicitely require majority group, which we then have to rebuild.
-
-- Standard dummy coding: Member=1, nonmember=0, K=number of minority+majority
-    - This requires knowledge of which groups are related, and which are minority/majority
-    - Reduces change of duplication, more straightforward for many operations
-
-- Categorical variable: Group=i, K=Number of groups
-    - Forces the use of for-loops, which we want to avoid when possible.
-
-
-The operations that we need to perform with sensitive:
-
-A. Calculating fairness loss (training/eval)
-- Data: WORKS WITH TORCH.TENSORS that have already been processed
-- Notes
-    - Calculate across majority/minority groups, then compare after (pre-aggretes, allows vectorization)
-    - Compare distribution of majority and minority groups (no pre-aggregation, no vectorization)
-
-B. Sampling mini-batches
-- Data: WORKS WITH TORCH.TENSORS that have already been processed
-- Requires majority group and minority groups
-
-C. Resampling dataset to balance groups
-- Data: WORKS WITH ORIGINAL DATA that has NOT been processed
-- Require majority and minority groups
-
-D. Splitting dataset with stratified by label
-- Data: WORKS WITH ORIGINAL DATA that has NOT been processed
-- Requires majority and minority groups
-"""
-
 from collections import Counter
 from typing import List, Union
 from dataclasses import dataclass

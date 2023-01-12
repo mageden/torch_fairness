@@ -1,7 +1,9 @@
 
+from typing import TypedDict
+from typing import Optional
+from typing import Literal
 
 import torch
-from typing import TypedDict, Optional, Literal
 
 
 def _validate_input(labels, pred):
