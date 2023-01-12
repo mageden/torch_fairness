@@ -1,0 +1,22 @@
+
+.idea
+.spyderproject
+.vscode
+__pycache__
+*.pyc
+
+# Coverage
+htmlcov/**
+.coverage
+
+# Generated when building docs
+docs/source/auto_examples/
+docs/source/api/generated/
+docs/build/
+
+# Temporary
+FUTURE
+REMOVE
+
+
+
