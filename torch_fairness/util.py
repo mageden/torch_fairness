@@ -1,11 +1,12 @@
-
 from typing import Union
 
 import numpy as np
 import pandas as pd
 
 
-def set_random_state(random_state: Union[None, int, np.random.RandomState]) -> np.random.RandomState:
+def set_random_state(
+    random_state: Union[None, int, np.random.RandomState]
+) -> np.random.RandomState:
     """Sets the random state to ensure reproducible results.
 
     Parameters
@@ -29,5 +30,7 @@ def set_random_state(random_state: Union[None, int, np.random.RandomState]) -> n
 
 
 def _validate_dummy_coded_data(x: Union[np.ndarray, pd.DataFrame]) -> None:
-    if not np.all((x == 0.) | (x == 1.) | np.isnan(x)):
-        raise ValueError('Found unexpected values in dummy coded array: should only have {0, 1, np.nan}')
+    if not np.all((x == 0.0) | (x == 1.0) | np.isnan(x)):
+        raise ValueError(
+            "Found unexpected values in dummy coded array: should only have {0, 1, np.nan}"
+        )

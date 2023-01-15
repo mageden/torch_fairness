@@ -1,7 +1,4 @@
-
-from typing import TypedDict
-from typing import Optional
-from typing import Literal
+from typing import Literal, Optional, TypedDict
 
 import torch
 
@@ -26,7 +23,7 @@ def true_positive(labels: torch.tensor, pred: torch.tensor) -> torch.tensor:
     """
     _validate_input(labels, pred)
     positive_labels = labels == 1
-    positive_scores = pred*positive_labels
+    positive_scores = pred * positive_labels
     tp = positive_scores.sum(0)
     return tp
 
@@ -44,7 +41,7 @@ def false_positive(labels: torch.tensor, pred: torch.tensor) -> torch.tensor:
     """
     _validate_input(labels, pred)
     negative_labels = labels == 0
-    positive_scores = pred*negative_labels
+    positive_scores = pred * negative_labels
     fp = positive_scores.sum(0)
     return fp
 
@@ -62,7 +59,7 @@ def true_negative(labels: torch.tensor, pred: torch.tensor) -> torch.tensor:
     """
     _validate_input(labels, pred)
     negative_labels = labels == 0
-    negative_scores = (1-pred)*negative_labels
+    negative_scores = (1 - pred) * negative_labels
     tn = negative_scores.sum(0)
     return tn
 
@@ -80,7 +77,7 @@ def false_negative(labels: torch.tensor, pred: torch.tensor) -> torch.tensor:
     """
     _validate_input(labels, pred)
     positive_labels = labels == 1
-    negative_scores = (1-pred)*positive_labels
+    negative_scores = (1 - pred) * positive_labels
     fn = negative_scores.sum(0)
     return fn
 
@@ -141,34 +138,38 @@ class ConfusionMatrix:
     >>> results
     tensor([0.5])
     """
-    def __init__(self, metrics: list[Literal['tpr', 'fpr', 'tnr', 'fnr', 'ppv', 'npv', 'accuracy']]):
+
+    def __init__(
+        self,
+        metrics: list[Literal["tpr", "fpr", "tnr", "fnr", "ppv", "npv", "accuracy"]],
+    ):
         if metrics is None or len(metrics) == 0:
             raise ValueError("At least one metric must be specified")
         self.metrics = set(metrics)
 
     def calculate(self, labels: torch.tensor, pred: torch.tensor) -> ConfusionMetrics:
         # Calculate required components
-        if not self.metrics.isdisjoint({'tpr', 'fnr', 'ppv', 'accuracy'}):
+        if not self.metrics.isdisjoint({"tpr", "fnr", "ppv", "accuracy"}):
             tp = true_positive(labels, pred)
-        if not self.metrics.isdisjoint({'fpr', 'tnr', 'ppv', 'accuracy'}):
+        if not self.metrics.isdisjoint({"fpr", "tnr", "ppv", "accuracy"}):
             fp = false_positive(labels, pred)
-        if not self.metrics.isdisjoint({'fpr', 'tnr', 'npv', 'accuracy'}):
+        if not self.metrics.isdisjoint({"fpr", "tnr", "npv", "accuracy"}):
             tn = true_negative(labels, pred)
-        if not self.metrics.isdisjoint({'tpr', 'fnr', 'npv', 'accuracy'}):
+        if not self.metrics.isdisjoint({"tpr", "fnr", "npv", "accuracy"}):
             fn = false_negative(labels, pred)
         out = {}
-        if 'tpr' in self.metrics:
-            out['tpr'] = tp/(tp+fn)
-        if 'fpr' in self.metrics:
-            out['fpr'] = fp/(fp+tn)
-        if 'tnr' in self.metrics:
-            out['tnr'] = tn/(tn+fp)
-        if 'fnr' in self.metrics:
-            out['fnr'] = fn/(fn+tp)
-        if 'ppv' in self.metrics:
-            out['ppv'] = tp / (tp+fp)
-        if 'npv' in self.metrics:
-            out['npv'] = tn / (tn+fn)
-        if 'accuracy' in self.metrics:
-            out['accuracy'] = (tp+tn) / (tp+tn+fp+fn)
+        if "tpr" in self.metrics:
+            out["tpr"] = tp / (tp + fn)
+        if "fpr" in self.metrics:
+            out["fpr"] = fp / (fp + tn)
+        if "tnr" in self.metrics:
+            out["tnr"] = tn / (tn + fp)
+        if "fnr" in self.metrics:
+            out["fnr"] = fn / (fn + tp)
+        if "ppv" in self.metrics:
+            out["ppv"] = tp / (tp + fp)
+        if "npv" in self.metrics:
+            out["npv"] = tn / (tn + fn)
+        if "accuracy" in self.metrics:
+            out["accuracy"] = (tp + tn) / (tp + tn + fp + fn)
         return out

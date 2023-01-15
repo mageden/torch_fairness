@@ -1,4 +1,3 @@
-
 import unittest
 
 import torch
@@ -20,7 +19,7 @@ class TestConfusionMatrix(unittest.TestCase):
     def setUpClass(cls):
         cls.labels = torch.tensor([0, 0, 1, 0, 1, 0, 1, 0, 1, 1])
         cls.pred = torch.tensor([1, 1, 1, 1, 1, 0, 0, 1, 0, 0])
-        cls.cm = ConfusionMatrix(['tpr', 'fpr', 'tnr', 'fnr', 'ppv', 'npv', 'accuracy'])
+        cls.cm = ConfusionMatrix(["tpr", "fpr", "tnr", "fnr", "ppv", "npv", "accuracy"])
 
     @classmethod
     def tearDownClass(cls):
@@ -37,12 +36,16 @@ class TestConfusionMatrix(unittest.TestCase):
             "fnr": 0.6,
             "ppv": 0.3333333333333333,
             "npv": 0.25,
-            "accuracy": 0.3}
+            "accuracy": 0.3,
+        }
         for key in predicted.keys():
-            self.assertAlmostEqual(matrix[key], predicted[key], places=4, msg=f"{key} is incorrect")
+            self.assertAlmostEqual(
+                matrix[key], predicted[key], places=4, msg=f"{key} is incorrect"
+            )
 
     def test_no_metric_provided(self):
         self.assertRaises(ValueError, ConfusionMatrix, metrics=None)
+
 
 class TestConfusionMatrixMetrics(unittest.TestCase):
     @classmethod
@@ -96,7 +99,11 @@ class TestConfusionMatrixMetrics(unittest.TestCase):
         self.assertEqual(tpr, torch.tensor(0.6))
 
     def test_unequal_shapes(self):
-        self.assertRaises(ValueError, _validate_input, torch.tensor([1, 2]), torch.tensor([2]))
+        self.assertRaises(
+            ValueError, _validate_input, torch.tensor([1, 2]), torch.tensor([2])
+        )
 
     def test_incorrect_dim(self):
-        self.assertRaises(ValueError, _validate_input, torch.rand(2, 1, 3), torch.rand(2, 1, 3))
+        self.assertRaises(
+            ValueError, _validate_input, torch.rand(2, 1, 3), torch.rand(2, 1, 3)
+        )

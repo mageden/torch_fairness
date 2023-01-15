@@ -1,7 +1,6 @@
-
-from abc import ABC
 import math
-from typing import List, Optional, Callable, Literal
+from abc import ABC
+from typing import Callable, List, Literal, Optional
 
 import torch
 import torch.nn.functional as F
@@ -10,7 +9,6 @@ from torch_fairness.confusion_matrix import ConfusionMatrix
 from torch_fairness.data import SensitiveMap, get_member
 
 
-# ============================= BASE ================================
 def _validate_shape(x: torch.tensor, squeeze: bool = True):
     """
     Validates and standardizes shape.
@@ -50,7 +48,7 @@ class ThresholdOperator(torch.nn.Module):
 
     def forward(self, x: torch.tensor) -> torch.tensor:
         if self.threshold is not None:
-            x = (x >= self.threshold)*1.
+            x = (x >= self.threshold) * 1.0
         return x
 
 
@@ -61,17 +59,21 @@ class BaseFairnessLoss(ABC, torch.nn.Module):
 
 
 class ConfusionMatrixFairness(BaseFairnessLoss):
-    supports = ['classification']
+    supports = ["classification"]
 
-    def __init__(self,
-                 cm_metrics: list[Literal['tpr', 'fpr', 'tnr', 'fnr', 'ppv', 'npv', 'accuracy']],
-                 threshold: Optional[float] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        cm_metrics: list[Literal["tpr", "fpr", "tnr", "fnr", "ppv", "npv", "accuracy"]],
+        threshold: Optional[float] = None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.threshold_layer = ThresholdOperator(threshold=threshold)
         self.cm = ConfusionMatrix(cm_metrics)
 
-    def forward(self, pred: torch.tensor, labels: torch.tensor, sensitive: torch.tensor) -> torch.tensor:
+    def forward(
+        self, pred: torch.tensor, labels: torch.tensor, sensitive: torch.tensor
+    ) -> torch.tensor:
         """
         Parameters
         ----------
@@ -94,23 +96,27 @@ class ConfusionMatrixFairness(BaseFairnessLoss):
         result = []
         for maj_idx, min_groups in self.sensitive_map.majority_minority_pairs:
             maj_sensitive = sensitive[:, maj_idx]
-            majority = self.cm.calculate(get_member(maj_sensitive, labels), get_member(maj_sensitive, pred))
+            majority = self.cm.calculate(
+                get_member(maj_sensitive, labels), get_member(maj_sensitive, pred)
+            )
             majority = torch.stack(list(majority.values()))
             # Some metrics may be conditional where that condition is not observed (NPV) causing a NaN - if this happens
             # set to 0.
-            majority = torch.nan_to_num(majority, 0.)
+            majority = torch.nan_to_num(majority, 0.0)
             for min_idx in min_groups:
                 sensitive_minority = sensitive[:, min_idx]
-                minority = self.cm.calculate(get_member(sensitive_minority, labels), get_member(sensitive_minority, pred))
+                minority = self.cm.calculate(
+                    get_member(sensitive_minority, labels),
+                    get_member(sensitive_minority, pred),
+                )
                 minority = torch.stack(list(minority.values()))
-                minority = torch.nan_to_num(minority, 0.)
+                minority = torch.nan_to_num(minority, 0.0)
                 group_loss = torch.mean(torch.abs(minority - majority))
                 result.append(group_loss)
         result = torch.stack(result)
         return result
 
 
-# ============================= Measures ============================
 class MinimaxFairness(BaseFairnessLoss):
     """Maximum loss across any of the sensitive groups [1,2].
 
@@ -137,12 +143,13 @@ class MinimaxFairness(BaseFairnessLoss):
     >>> from torch_fairness.data import SensitiveMap, SensitiveAttribute
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [1., 0.], [0., 1.], [0., 1], [0., 1]])
     >>> loss = torch.tensor([0.5, 0.2, 0.1, 0.99, 1.5, 2.])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = MinimaxFairness(sensitive_map=sensitive_map)
     >>> print(fair_loss(loss=loss, sensitive=sensitive))
     tensor(1.4967)
     """
-    supports = ['classification', 'regression']
+
+    supports = ["classification", "regression"]
 
     def forward(self, loss: torch.tensor, sensitive: torch.tensor) -> torch.tensor:
         """
@@ -204,19 +211,18 @@ class FalsePositiveRateBalance(ConfusionMatrixFairness):
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [1., 0.], [0., 1.], [0., 1], [0., 1]])
     >>> pred = torch.tensor([0.7, 0.8, 0.2, 0.55, 0.7, 0.7])
     >>> labels = torch.tensor([1, 0, 0, 1, 0, 0])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = FalsePositiveRateBalance(threshold=0.5, sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, labels=labels, sensitive=sensitive))
     tensor([0.5000])
     """
-    supports = ['classification']
 
-    def __init__(self,
-                 sensitive_map: SensitiveMap,
-                 threshold: Optional[float] = None):
-        super().__init__(sensitive_map=sensitive_map,
-                         threshold=threshold,
-                         cm_metrics=['fpr'])
+    supports = ["classification"]
+
+    def __init__(self, sensitive_map: SensitiveMap, threshold: Optional[float] = None):
+        super().__init__(
+            sensitive_map=sensitive_map, threshold=threshold, cm_metrics=["fpr"]
+        )
 
 
 class EqualOpportunity(ConfusionMatrixFairness):
@@ -264,19 +270,18 @@ class EqualOpportunity(ConfusionMatrixFairness):
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [1., 0.], [0., 1.], [0., 1], [0., 1]])
     >>> pred = torch.tensor([0.7, 0.8, 0.2, 0.55, 0.7, 0.7])
     >>> labels = torch.tensor([0, 1, 1, 0, 1, 1])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = EqualOpportunity(threshold=0.5, sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, labels=labels, sensitive=sensitive))
     tensor([0.5000])
     """
-    supports = ['classification']
 
-    def __init__(self,
-                 sensitive_map: SensitiveMap,
-                 threshold: Optional[float] = None):
-        super().__init__(sensitive_map=sensitive_map,
-                         threshold=threshold,
-                         cm_metrics=['fnr'])
+    supports = ["classification"]
+
+    def __init__(self, sensitive_map: SensitiveMap, threshold: Optional[float] = None):
+        super().__init__(
+            sensitive_map=sensitive_map, threshold=threshold, cm_metrics=["fnr"]
+        )
 
 
 class EqualizedOdds(ConfusionMatrixFairness):
@@ -323,19 +328,18 @@ class EqualizedOdds(ConfusionMatrixFairness):
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [1., 0.], [0., 1.], [0., 1], [0., 1]])
     >>> pred = torch.tensor([0.7, 0.8, 0.2, 0.55, 0.7, 0.7])
     >>> labels = torch.tensor([0, 1, 1, 0, 1, 1])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = EqualizedOdds(threshold=0.5, sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, labels=labels, sensitive=sensitive))
     tensor([0.2500])
     """
-    supports = ['classification']
 
-    def __init__(self,
-                 sensitive_map: SensitiveMap,
-                 threshold: Optional[float] = None):
-        super().__init__(sensitive_map=sensitive_map,
-                         threshold=threshold,
-                         cm_metrics=['fpr', 'tpr'])
+    supports = ["classification"]
+
+    def __init__(self, sensitive_map: SensitiveMap, threshold: Optional[float] = None):
+        super().__init__(
+            sensitive_map=sensitive_map, threshold=threshold, cm_metrics=["fpr", "tpr"]
+        )
 
 
 class AccuracyEquality(ConfusionMatrixFairness):
@@ -365,19 +369,18 @@ class AccuracyEquality(ConfusionMatrixFairness):
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [1., 0.], [0., 1.], [0., 1], [0., 1]])
     >>> pred = torch.tensor([0.7, 0.8, 0.2, 0.55, 0.7, 0.7])
     >>> labels = torch.tensor([0, 1, 1, 0, 1, 1])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = AccuracyEquality(threshold=0.5, sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, labels=labels, sensitive=sensitive))
     tensor([0.3333])
     """
-    supports = ['classification']
 
-    def __init__(self,
-                 sensitive_map: SensitiveMap,
-                 threshold: Optional[float] = None):
-        super().__init__(sensitive_map=sensitive_map,
-                         threshold=threshold,
-                         cm_metrics=['accuracy'])
+    supports = ["classification"]
+
+    def __init__(self, sensitive_map: SensitiveMap, threshold: Optional[float] = None):
+        super().__init__(
+            sensitive_map=sensitive_map, threshold=threshold, cm_metrics=["accuracy"]
+        )
 
 
 class PredictiveParity(ConfusionMatrixFairness):
@@ -397,7 +400,7 @@ class PredictiveParity(ConfusionMatrixFairness):
     Notes
     -----
 
-    Alternative names: *Outcome test*, *False discover rate balance*
+    Alternative names: *Outcome tests*, *False discover rate balance*
 
     References
     ----------
@@ -412,19 +415,18 @@ class PredictiveParity(ConfusionMatrixFairness):
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [1., 0.], [0., 1.], [0., 1], [0., 1]])
     >>> pred = torch.tensor([0.7, 0.8, 0.2, 0.55, 0.7, 0.7])
     >>> labels = torch.tensor([0, 1, 1, 0, 1, 1])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = PredictiveParity(threshold=0.5, sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, labels=labels, sensitive=sensitive))
     tensor([0.1667])
     """
-    supports = ['classification']
 
-    def __init__(self,
-                 sensitive_map: SensitiveMap,
-                 threshold: Optional[float] = None):
-        super().__init__(sensitive_map=sensitive_map,
-                         threshold=threshold,
-                         cm_metrics=['ppv'])
+    supports = ["classification"]
+
+    def __init__(self, sensitive_map: SensitiveMap, threshold: Optional[float] = None):
+        super().__init__(
+            sensitive_map=sensitive_map, threshold=threshold, cm_metrics=["ppv"]
+        )
 
 
 class ConditionalUseAccuracyParity(ConfusionMatrixFairness):
@@ -462,19 +464,18 @@ class ConditionalUseAccuracyParity(ConfusionMatrixFairness):
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [1., 0.], [1., 0.], [0., 1.], [0., 1], [0., 1], [0., 1]])
     >>> pred = torch.tensor([0.7, 0.8, 0.2, 0.8, 0.55, 0.7, 0.7, 0.2])
     >>> labels = torch.tensor([0, 1, 1, 0, 0, 1, 1, 0])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = ConditionalUseAccuracyParity(threshold=0.5, sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, labels=labels, sensitive=sensitive))
     tensor([0.6667])
     """
-    supports = ['classification']
 
-    def __init__(self,
-                 sensitive_map: SensitiveMap,
-                 threshold: Optional[float] = None):
-        super().__init__(sensitive_map=sensitive_map,
-                         threshold=threshold,
-                         cm_metrics=['ppv', 'npv'])
+    supports = ["classification"]
+
+    def __init__(self, sensitive_map: SensitiveMap, threshold: Optional[float] = None):
+        super().__init__(
+            sensitive_map=sensitive_map, threshold=threshold, cm_metrics=["ppv", "npv"]
+        )
 
 
 class BalancedPositive(BaseFairnessLoss):
@@ -504,20 +505,21 @@ class BalancedPositive(BaseFairnessLoss):
     >>> sensitive = torch.tensor([[1, 0], [1, 0], [0, 1], [0, 1]])
     >>> pred = torch.tensor([0.2, 0.8, 1., 0.8])
     >>> labels = torch.tensor([1., 0., 1., 0.])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = BalancedPositive(sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, labels=labels, sensitive=sensitive))
     tensor([0.8000])
     """
-    supports = ['classification']
 
-    def __init__(self,
-                 sensitive_map: SensitiveMap,
-                 threshold: Optional[float] = None):
+    supports = ["classification"]
+
+    def __init__(self, sensitive_map: SensitiveMap, threshold: Optional[float] = None):
         super().__init__(sensitive_map=sensitive_map)
         self.threshold_layer = ThresholdOperator(threshold=threshold)
 
-    def forward(self, pred: torch.tensor, labels: torch.tensor, sensitive: torch.tensor) -> torch.tensor:
+    def forward(
+        self, pred: torch.tensor, labels: torch.tensor, sensitive: torch.tensor
+    ) -> torch.tensor:
         """
         Parameters
         ----------
@@ -580,20 +582,21 @@ class BalancedNegative(BaseFairnessLoss):
     >>> sensitive = torch.tensor([[1, 0], [1, 0], [0, 1], [0, 1]])
     >>> pred = torch.tensor([0.2, 0.8, 1., 0.8])
     >>> labels = torch.tensor([1., 0., 1., 0.])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = BalancedNegative(sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, labels=labels, sensitive=sensitive))
     tensor([0.])
     """
-    supports = ['classification']
 
-    def __init__(self,
-                 sensitive_map: SensitiveMap,
-                 threshold: Optional[float] = None):
+    supports = ["classification"]
+
+    def __init__(self, sensitive_map: SensitiveMap, threshold: Optional[float] = None):
         super().__init__(sensitive_map=sensitive_map)
         self.threshold_layer = ThresholdOperator(threshold=threshold)
 
-    def forward(self, pred: torch.tensor, labels: torch.tensor, sensitive: torch.tensor) -> torch.tensor:
+    def forward(
+        self, pred: torch.tensor, labels: torch.tensor, sensitive: torch.tensor
+    ) -> torch.tensor:
         """
         Parameters
         ----------
@@ -631,7 +634,7 @@ class BalancedNegative(BaseFairnessLoss):
 
 class DemographicParity(BaseFairnessLoss):
     """
-    The absolute difference in proportion of group members with :math:`\hat{Y}` =1 between minority and majority groups
+    The absolute difference in proportion of group members with :math:`\\hat{Y}` =1 between minority and majority groups
     [1, 2].
 
     Demographic parity is also commonly calculated using ratios of the selection rate between the minority and majority,
@@ -669,15 +672,15 @@ class DemographicParity(BaseFairnessLoss):
     >>> from torch_fairness.data import SensitiveMap, SensitiveAttribute
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [0., 1.], [0., 1]])
     >>> pred = torch.tensor([0.7, 0.6, 0.6, 0.2])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = DemographicParity(threshold=0.5, sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, sensitive=sensitive))
     tensor([0.5000])
     """
-    supports = ['classification']
 
-    def __init__(self,
-                 threshold: Optional[float] = None, **kwargs):
+    supports = ["classification"]
+
+    def __init__(self, threshold: Optional[float] = None, **kwargs):
         super().__init__(**kwargs)
         self.threshold_layer = ThresholdOperator(threshold=threshold)
 
@@ -744,19 +747,19 @@ class SmoothedEmpiricalDifferentialFairness(BaseFairnessLoss):
     >>> from torch_fairness.data import SensitiveMap, SensitiveAttribute
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [0., 1.], [0., 1]])
     >>> pred = torch.tensor([1, 1, 0, 1])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = SmoothedEmpiricalDifferentialFairness(sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, sensitive=sensitive))
     tensor([1.0986])
     """
-    supports = ['classification']
+
+    supports = ["classification"]
     # Parameters used in original differential fairness paper
     num_classes: int = 2  # The number of outcomes available (selected / not selected)
     dirichlet_alpha: float = 0.5
     concentration_parameter: float = num_classes * dirichlet_alpha
 
-    def __init__(self,
-                 threshold: Optional[float] = None, **kwargs):
+    def __init__(self, threshold: Optional[float] = None, **kwargs):
         super().__init__(**kwargs)
         self.threshold_layer = ThresholdOperator(threshold=threshold)
 
@@ -798,8 +801,12 @@ class SmoothedEmpiricalDifferentialFairness(BaseFairnessLoss):
                 prop_hire_minority = self._smooth_hire_prop(n_hire_minority, n_minority)
                 # Differential fairness loss
                 epsilon = torch.log(prop_hire_majority) - torch.log(prop_hire_minority)
-                epsilon2 = torch.log(1 - prop_hire_majority) - torch.log(1 - prop_hire_minority)
-                differential_fairness = torch.max(torch.abs(torch.stack([epsilon, epsilon2])))
+                epsilon2 = torch.log(1 - prop_hire_majority) - torch.log(
+                    1 - prop_hire_minority
+                )
+                differential_fairness = torch.max(
+                    torch.abs(torch.stack([epsilon, epsilon2]))
+                )
                 result.append(differential_fairness)
         result = torch.stack(result)
         return result
@@ -841,7 +848,7 @@ class WeightedSumofLogs(BaseFairnessLoss):
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [0., 1.], [0., 1]])
     >>> pred = torch.tensor([0.7, 0.6, 0.6, 0.2])
     >>> labels = torch.tensor([1, 0, 0, 1])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = WeightedSumofLogs(labels=labels, sensitive=sensitive, sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, sensitive=sensitive))
     tensor([[0.0446],
@@ -849,23 +856,28 @@ class WeightedSumofLogs(BaseFairnessLoss):
             [0.0639],
             [0.2012]])
     """
-    supports = ['classification']
 
-    def __init__(self,
-                 labels: torch.tensor,
-                 sensitive: torch.tensor,
-                 sensitive_map: SensitiveMap,
-                 reduce: bool = True):
+    supports = ["classification"]
+
+    def __init__(
+        self,
+        labels: torch.tensor,
+        sensitive: torch.tensor,
+        sensitive_map: SensitiveMap,
+        reduce: bool = True,
+    ):
         super().__init__(sensitive_map=sensitive_map)
         self.historical_bias = self._calculate_historical_bias(labels, sensitive)
         self.reduce = reduce
 
-    def _calculate_historical_bias(self, labels: torch.tensor, sensitive: torch.tensor) -> torch.tensor:
+    def _calculate_historical_bias(
+        self, labels: torch.tensor, sensitive: torch.tensor
+    ) -> torch.tensor:
         labels = _validate_shape(labels)
         member_idx = get_member(sensitive)
         sample_size = member_idx.sum(0)
         negative_label = (member_idx & (labels.unsqueeze(1) == 0)).sum(0)
-        historical_bias = negative_label / sample_size ** 2
+        historical_bias = negative_label / sample_size**2
         return historical_bias
 
     def forward(self, pred: torch.tensor, sensitive: torch.tensor) -> torch.tensor:
@@ -885,13 +897,15 @@ class WeightedSumofLogs(BaseFairnessLoss):
         pred = _validate_shape(pred, squeeze=False)
         bias = sensitive * self.historical_bias
         # Some sensitive groups may be missing - set these nan to 0 so that they don't cause issues
-        bias = torch.nan_to_num(bias, 0.)
+        bias = torch.nan_to_num(bias, 0.0)
         if self.reduce:
             bias = torch.mean(bias, 1).unsqueeze(1)
         loss = -bias * torch.log(pred)
         return loss
 
-    def calculate(self, pred: torch.tensor, historical_bias: torch.tensor) -> torch.tensor:
+    def calculate(
+        self, pred: torch.tensor, historical_bias: torch.tensor
+    ) -> torch.tensor:
         loss = -pred * historical_bias
         loss = self.agg_func(loss)
         return loss
@@ -933,12 +947,13 @@ class MeanDifferences(BaseFairnessLoss):
     >>> from torch_fairness.data import SensitiveMap, SensitiveAttribute
     >>> x = torch.tensor([0., 2., -1., 1.])
     >>> sensitive = torch.tensor([[1, 0], [1, 0], [0, 1], [0, 1]])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', minority=[0], majority=1))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', minority=[0], majority=1))
     >>> fair_loss = MeanDifferences(sensitive_map=sensitive_map)
     >>> print(fair_loss(x, sensitive=sensitive))
     tensor([1.])
     """
-    supports = ['regression']
+
+    supports = ["regression"]
 
     def calculate(self, majority: torch.tensor, minority: torch.tensor) -> torch.tensor:
         return torch.abs(majority.mean() - minority.mean())
@@ -996,12 +1011,13 @@ class CrossPairDistance(BaseFairnessLoss):
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [1., 0.], [0., 1.], [0., 1.], [0., 1.]])
     >>> labels = torch.tensor([-1, 1.2, 1.5, -0.2, 0.6, 0])
     >>> pred = torch.tensor([-1.5, 1.0, 1.0, 0, 0.2, 0.5])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = CrossPairDistance(sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, labels=labels, sensitive=sensitive))
     tensor([0.0017])
     """
-    supports = ['classification', 'regression']
+
+    supports = ["classification", "regression"]
 
     def __init__(self, is_regression: bool = True, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1016,10 +1032,12 @@ class CrossPairDistance(BaseFairnessLoss):
             dist = self.pairwise_difference(x, y)
             dist = torch.exp(-torch.pow(dist, 2))
         else:
-            dist = 1.*(x[:, None] == y[None, :])
+            dist = 1.0 * (x[:, None] == y[None, :])
         return dist
 
-    def forward(self, pred: torch.tensor, labels: torch.tensor, sensitive: torch.tensor) -> torch.tensor:
+    def forward(
+        self, pred: torch.tensor, labels: torch.tensor, sensitive: torch.tensor
+    ) -> torch.tensor:
         """
         Parameters
         ----------
@@ -1039,7 +1057,9 @@ class CrossPairDistance(BaseFairnessLoss):
         pred = _validate_shape(pred, squeeze=True)
         labels = _validate_shape(labels, squeeze=True)
         if pred.shape != labels.shape:
-            raise ValueError(f"Pred ({pred.shape}) and labels ({labels.shape}) must be the same size.")
+            raise ValueError(
+                f"Pred ({pred.shape}) and labels ({labels.shape}) must be the same size."
+            )
         result = []
         for maj_idx, min_groups in self.sensitive_map.majority_minority_pairs:
             maj_sensitive = sensitive[:, maj_idx]
@@ -1080,11 +1100,12 @@ class AbsoluteCorrelation(BaseFairnessLoss):
     >>> pred = torch.tensor([0.7, 1., 0.2, 0.55, 0.7, 0.7])
     >>> labels = torch.tensor([0, 1, 1, 0, 1, 1])
     >>> sensitive = torch.tensor([[1., 0.], [1., 0.], [1., 0.], [0., 1.], [0., 1], [0., 1]])
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> fair_loss = AbsoluteCorrelation(sensitive_map=sensitive_map)
     >>> print(fair_loss(pred=pred, sensitive=sensitive))
     tensor([0.0349])
     """
+
     epsilon = 1e-7
 
     def forward(self, pred: torch.tensor, sensitive: torch.tensor) -> torch.tensor:
@@ -1108,8 +1129,10 @@ class AbsoluteCorrelation(BaseFairnessLoss):
             for min_idx in min_groups:
                 sensitive_observed_i = sensitive_observed[:, min_idx]
                 sensitive_minority = sensitive[:, min_idx]
-                absolute_correlation = self.calculate(pred[sensitive_observed_i].squeeze(),
-                                                      sensitive_minority[sensitive_observed_i])
+                absolute_correlation = self.calculate(
+                    pred[sensitive_observed_i].squeeze(),
+                    sensitive_minority[sensitive_observed_i],
+                )
                 result.append(absolute_correlation)
         result = torch.stack(result)
         return result
@@ -1117,8 +1140,8 @@ class AbsoluteCorrelation(BaseFairnessLoss):
     def calculate(self, x: torch.tensor, y: torch.tensor) -> torch.tensor:
         x_dist = x - torch.mean(x)
         y_dist = y - torch.mean(y)
-        x_var = torch.sqrt(torch.sum(x_dist ** 2) + self.epsilon)
-        y_var = torch.sqrt(torch.sum(y_dist ** 2) + self.epsilon)
+        x_var = torch.sqrt(torch.sum(x_dist**2) + self.epsilon)
+        y_var = torch.sqrt(torch.sum(y_dist**2) + self.epsilon)
         cost = torch.sum(x_dist * y_dist) / (x_var * y_var)
         cost = torch.abs(cost)
         return cost
@@ -1147,17 +1170,18 @@ class MMDFairness(BaseFairnessLoss):
     >>> import torch
     >>> from torch_fairness.metrics import MMDFairness
     >>> from torch_fairness.data import SensitiveMap, SensitiveAttribute
-    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='test', majority=0, minority=[1]))
+    >>> sensitive_map = SensitiveMap(SensitiveAttribute(name='tests', majority=0, minority=[1]))
     >>> sensitive = torch.tensor([[1, 0], [1, 0], [1, 0], [0, 1], [0, 1], [0, 1]])
     >>> pred = torch.tensor([0., 1., -1., 0., 2., -2.])
     >>> fair_loss = MMDFairness(sensitive_map=sensitive_map)
     >>> print(fair_loss(x=pred, sensitive=sensitive))
     tensor([0.2850])
     """
-    supports = ['classification', 'regression']
-    kernel = 'gaussian'
 
-    def __init__(self, sensitive_map, biased: bool = True, bandwidth: float = 1.):
+    supports = ["classification", "regression"]
+    kernel = "gaussian"
+
+    def __init__(self, sensitive_map, biased: bool = True, bandwidth: float = 1.0):
         self.biased = biased
         self.bandwidth = bandwidth
         super().__init__(sensitive_map=sensitive_map)
@@ -1180,17 +1204,23 @@ class MMDFairness(BaseFairnessLoss):
         n_majority = majority.shape[0]
         n_minority = minority.shape[0]
         # Distances
-        majority_distances = F.pdist(majority, 2.)
-        minority_distances = F.pdist(minority, 2.)
-        cross_distances = torch.cdist(majority, minority, p=2.)
+        majority_distances = F.pdist(majority, 2.0)
+        minority_distances = F.pdist(minority, 2.0)
+        cross_distances = torch.cdist(majority, minority, p=2.0)
         # Kernel over distances
         kernel_majority = self.gaussian_kernel(majority_distances)
         kernel_minority = self.gaussian_kernel(minority_distances)
         kernel_marginal = self.gaussian_kernel(cross_distances)
         # Aggregate
         if self.biased:
-            kernel_majority = kernel_majority.sum()*2 + n_majority*self.gaussian_kernel(torch.tensor(0))
-            kernel_minority = kernel_minority.sum()*2 + n_minority*self.gaussian_kernel(torch.tensor(0))
+            kernel_majority = (
+                kernel_majority.sum() * 2
+                + n_majority * self.gaussian_kernel(torch.tensor(0))
+            )
+            kernel_minority = (
+                kernel_minority.sum() * 2
+                + n_minority * self.gaussian_kernel(torch.tensor(0))
+            )
             kernel_marginal = kernel_marginal.sum()
             kernel_majority *= 1 / (n_majority * n_majority)
             kernel_minority *= 1 / (n_minority * n_minority)
@@ -1198,13 +1228,13 @@ class MMDFairness(BaseFairnessLoss):
         else:
             # Since pdist calculates all unique comparisons, we multiply times 2 to get sum along pairwise distance matrix
             # with diagonal removed. This is the unbiased estimator, however, if minority=majority is does not equal 0.
-            kernel_majority = kernel_majority.sum()*2
-            kernel_minority = kernel_minority.sum()*2
+            kernel_majority = kernel_majority.sum() * 2
+            kernel_minority = kernel_minority.sum() * 2
             kernel_marginal = kernel_marginal.sum()
-            kernel_majority *= 1 / (n_majority * (n_majority-1))
+            kernel_majority *= 1 / (n_majority * (n_majority - 1))
             kernel_minority *= 1 / (n_minority * (n_minority - 1))
             kernel_marginal *= 1 / (n_majority * n_minority)
-        mmd = kernel_majority + kernel_minority - 2*kernel_marginal
+        mmd = kernel_majority + kernel_minority - 2 * kernel_marginal
         return mmd
 
     def gaussian_kernel(self, pairwise_distance: torch.tensor) -> torch.tensor:

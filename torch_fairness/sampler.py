@@ -1,11 +1,10 @@
-
-from typing import Iterator, List
-import warnings
 import math
+import warnings
+from typing import Iterator, List
 
+import numpy as np
 import pandas as pd
 import torch
-import numpy as np
 from torch.utils.data import Sampler
 
 from torch_fairness.resampling import get_sample_pool
@@ -51,11 +50,14 @@ class MLStratifiedBatchSampler(Sampler[List[int]]):
         [0.6900, 0.5600]]), tensor([[0, 1],
         [1, 0]])]
     """
-    def __init__(self,
-                 labels: torch.tensor,
-                 batch_size: int,
-                 limit_replacement: bool = False,
-                 random_state=None):
+
+    def __init__(
+        self,
+        labels: torch.tensor,
+        batch_size: int,
+        limit_replacement: bool = False,
+        random_state=None,
+    ):
         if not isinstance(batch_size, int) or batch_size <= 0:
             raise ValueError("batch_size must be a positive non-zero integer.")
         self.labels = labels
@@ -67,8 +69,10 @@ class MLStratifiedBatchSampler(Sampler[List[int]]):
         # Chunks are the increment used within a batch to sample from the different pools - set so that each class is
         # guaranteed a minimum sample size of BatchSize//NumClasses.
         if self.batch_size < self.num_classes:
-            raise ValueError("The batch_size is less than the number of labels - it is not possible to have every label"
-                             "present.")
+            raise ValueError(
+                "The batch_size is less than the number of labels - it is not possible to have every label"
+                "present."
+            )
         chunk_size = self.batch_size // self.num_classes
         self._batch_chunks = [chunk_size for _ in range(self.batch_size // chunk_size)]
         self._batch_chunks[-1] += self.batch_size - np.sum(self._batch_chunks)
@@ -86,7 +90,9 @@ class MLStratifiedBatchSampler(Sampler[List[int]]):
             batch_idx = []
             for chunk_i, chunk_i_size in enumerate(self._batch_chunks):
                 # Find group with the least sample size in batch - select random if tie
-                smallest_group = self.random_state.choice(np.arange(self.num_classes)[sample_sizes == sample_sizes.min()])
+                smallest_group = self.random_state.choice(
+                    np.arange(self.num_classes)[sample_sizes == sample_sizes.min()]
+                )
                 chunk_idx = self._sample(smallest_group, size=chunk_i_size)
                 batch_idx += chunk_idx
                 sample_sizes += np.nansum(self.labels[chunk_idx, :], axis=0)
@@ -106,9 +112,13 @@ class MLStratifiedBatchSampler(Sampler[List[int]]):
         elif len(group_pool) < size:
             sample = group_pool
             group_pool = self.class_indices[group].copy()
-            new_cycle_samples = self.random_state.choice(group_pool, size, replace=False).tolist()
+            new_cycle_samples = self.random_state.choice(
+                group_pool, size, replace=False
+            ).tolist()
             # Remove samples
-            self._class_indices_cache[group] = np.setdiff1d(group_pool, new_cycle_samples).tolist()
+            self._class_indices_cache[group] = np.setdiff1d(
+                group_pool, new_cycle_samples
+            ).tolist()
             # Combine
             sample += new_cycle_samples
         else:
