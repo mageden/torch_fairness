@@ -1,4 +1,4 @@
-from typing import Literal, Optional, TypedDict
+from typing import Literal, Optional, TypedDict, List
 
 import torch
 
@@ -141,7 +141,7 @@ class ConfusionMatrix:
 
     def __init__(
         self,
-        metrics: list[Literal["tpr", "fpr", "tnr", "fnr", "ppv", "npv", "accuracy"]],
+        metrics: List[Literal["tpr", "fpr", "tnr", "fnr", "ppv", "npv", "accuracy"]],
     ):
         if metrics is None or len(metrics) == 0:
             raise ValueError("At least one metric must be specified")

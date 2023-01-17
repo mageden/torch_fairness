@@ -27,5 +27,5 @@ jobs:
 
     - name: Run tests and collect coverage
       run: |
-        coverage run --source=package -m unittest discover tests
+        coverage run --source=torch_fairness -m unittest discover tests
         codecov

@@ -687,7 +687,7 @@ class MLSMOTE(BaseResampler):
         starting_sample: np.ndarray,
         reference_sample: np.ndarray,
         neighbors: np.ndarray,
-        is_continuous: np.ndarray[bool],
+        is_continuous: np.ndarray,
     ) -> np.ndarray:
         """Creates a synthetic sample between the starting and reference sample. Categorical data are created based on
         the mode of the neighbors and continuous data are interpreted between two samples.
@@ -890,99 +890,6 @@ class MLeNN(BaseResampler):
             if col is not None:
                 data_i = pd.DataFrame(data_i, columns=col)
             out[name] = data_i
-        # for data in input_data:
-        #     out.append(data.iloc[output_idx, :])
         self.sample_size_delta = len(output_idx) - data["labels"].shape[0]
         self.removed_index = all_removal_idx
         return out
-
-
-# TODO - https://github.com/SaiTeja390/Oversampling/blob/master/SCUMBLE.ipynb
-# class REMEDIAL(BaseResampler):
-#     """REsampling MultilabEl datasets by Decoupling highly ImbAlanced Labels (REMEDIAL)
-#     REMEDIAL from [1]
-#
-#     Parameters
-#     ----------
-#
-#
-#     Attributes
-#     ----------
-#     sample_size_delta : int
-#         The change in the sample size: NEW_SIZE - OLD_SIZE
-#
-#
-#     Notes
-#     -----
-#     This is both an oversampling and an editing resampler. Within a fairness framework, this should not be used on
-#     tests or validation data as components of an individual's identity are being explicitly altered. However, it can be
-#     helpful during training to balance multiple strongly concurrent groups.
-#
-#     Examples
-#     --------
-#
-#
-#     References
-#     ----------
-#     .. [1] Charte, F., Rivera, A. J., del Jesus, M. J., & Herrera, F. (2019). Dealing with difficult minority labels
-#             in imbalanced mutilabel data sets. Neurocomputing, 326, 39-53.
-#
-#         """
-#     def __init__(self, neighbor_threshold: float = 0.5):
-#         self.neighbor_threshold = neighbor_threshold
-#
-#     def balance(self, labels: pd.DataFrame, features: pd.DataFrame, *args: List[pd.DataFrame]) -> List[pd.DataFrame]:
-#         raise NotImplementedError()
-
-
-# class MLSOL(BaseResampler):
-#     """Multi-Label Synthetic OversampLing (MLSOL) from [1]
-#
-#     .. [1] Liu, B., & Tsoumakas, G. (2019). Synthetic oversampling of multi-label data based on local label
-#         distribution. In Joint European Conference on Machine Learning and Knowledge Discovery in Databases
-#         (pp. 180-193). Springer, Cham.
-#     """
-#     def balance(self, sensitive: pd.DataFrame, features: pd.DataFrame, *args: List[pd.DataFrame]) -> List[pd.DataFrame]:
-#         raise NotImplementedError()
-
-
-# def evaluate_sample_sizes(sensitive: pd.DataFrame):
-#     sample_sizes = np.nansum(sensitive, axis=0)
-#     print(f"Sample sizes: {sample_sizes}")
-#     IR = sample_sizes.max() / sample_sizes
-#     print(f"IR: {IR}")
-#
-#
-# if __name__ == '__main__':
-#     from torch_fairness.data import SensitiveTransformer
-#     # Generate random data for testing
-#     np.random.seed(2)
-#     n_random_samples = 4
-#     sensitive = pd.DataFrame([[1., 0.], [1., 0.], [1., 0.], [0., 1.]], columns=['Gender_Majority', 'Gender_Minority'])
-#     features = pd.DataFrame(np.random.choice([1., 'a', np.nan], (n_random_samples, 2)), columns=['a', 'b'])
-#
-#     # Test Oversampler
-#     evaluate_sample_sizes(sensitive)
-#     resampler = MLROS(max_clone_percentage=0.5, random_state=1, sample_size_chunk=1)
-#     new_data = resampler.balance(labels=sensitive.values, features=features)
-#     evaluate_sample_sizes(new_data['labels'])
-#
-#     # Test UnderSampler
-#     # evaluate_sample_sizes(sensitive)
-#     # resampler = MLRUS(random_state=1)
-#     # new_sensitive = resampler.balance(labels=sensitive)
-#     # evaluate_sample_sizes(new_sensitive['labels'])
-#
-#     # Test ML-SMOTE
-#     # features = pd.DataFrame(np.random.random(sensitive.shape))
-#     # evaluate_sample_sizes(sensitive)
-#     # resampler = MLSMOTE(random_state=1)
-#     # new_data = resampler.balance(labels=sensitive, features=features)
-#     # evaluate_sample_sizes(new_data['labels'])
-#
-#     # Test MLeNN
-#     # features = pd.DataFrame(np.random.random(sensitive.shape))
-#     # evaluate_sample_sizes(sensitive)
-#     # resampler = MLeNN(random_state=1)
-#     # new_data = resampler.balance(labels=sensitive, features=features)
-#     # evaluate_sample_sizes(new_data['labels'])

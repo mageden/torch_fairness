@@ -1,6 +1,6 @@
-import math
+
 from abc import ABC
-from typing import Callable, List, Literal, Optional
+from typing import List, Literal, Optional
 
 import torch
 import torch.nn.functional as F
@@ -63,7 +63,7 @@ class ConfusionMatrixFairness(BaseFairnessLoss):
 
     def __init__(
         self,
-        cm_metrics: list[Literal["tpr", "fpr", "tnr", "fnr", "ppv", "npv", "accuracy"]],
+        cm_metrics: List[Literal["tpr", "fpr", "tnr", "fnr", "ppv", "npv", "accuracy"]],
         threshold: Optional[float] = None,
         **kwargs,
     ):

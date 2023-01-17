@@ -1,5 +1,1 @@
-
-unittest-cov
-codecov
-
-pre-commit
+codecov>=2.1.12
