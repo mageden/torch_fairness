@@ -13,6 +13,5 @@ Ideas
 .. toctree::
    :maxdepth: 1
 
-   notebooks/test_notebook
-   notebooks/compass_analysis
-
+   notebooks/simple_analysis.ipynb
+   notebooks/resample_dataset.ipynb
