@@ -30,12 +30,7 @@ extensions = [
     "sphinx.ext.todo",
     "sphinx.ext.coverage",
     "nbsphinx",
-    # Add when examples are ready
-    "sphinx_gallery.gen_gallery",
-    # 'sphinx.ext.autosectionlabel',
     "sphinx.ext.mathjax",
-    # 'sphinx.ext.ifconfig',
-    # 'sphinx.ext.githubpages'
 ]
 
 # This sets the name of a function/class to not include module (e.g., Covariance, not torch_fairness.covariance.Covariance)
@@ -45,28 +40,6 @@ templates_path = ["_templates"]
 
 # These are related to NB
 exclude_patterns = ["build", "**.ipynb_checkpoints"]
-
-# ---- Sphinx Gallary ----
-sphinx_gallery_conf = {
-    # path to your examples scripts
-    "examples_dirs": r"..\..\examples",
-    # path where to save gallery generated examples
-    "gallery_dirs": "auto_examples",
-    "image_scrapers": ("matplotlib",),
-}
-
-# ---- Napoleon settings ----
-# napoleon_google_docstring = True
-# napoleon_numpy_docstring = True
-# napoleon_include_init_with_doc = True
-# napoleon_include_private_with_doc = True
-# napoleon_include_special_with_doc = True
-# napoleon_use_admonition_for_examples = False
-# napoleon_use_admonition_for_notes = False
-# napoleon_use_admonition_for_references = False
-# napoleon_use_ivar = False
-# napoleon_use_param = True
-# napoleon_use_rtype = True
 
 # ---- Autodoc ----
 autodoc_inherit_docstrings = False
