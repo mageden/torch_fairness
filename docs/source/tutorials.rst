@@ -1,6 +1,6 @@
 
-Notebook Tutorials
-==================
+Tutorials
+=========
 
 Ideas
 
