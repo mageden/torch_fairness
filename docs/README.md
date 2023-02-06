@@ -27,13 +27,13 @@ make clean
 ### Run unittests
 
 ```commandline
-python -m unittest discover test
+python -m unittest discover tests
 ```
 
 ### Run coverage report
 
 ```commandline
-coverage run -m unittest discover test
+coverage run -m unittest discover tests
 coverage html --omit="*/test*"
 ```
 
@@ -42,6 +42,7 @@ coverage html --omit="*/test*"
 ```commandline
 python -m black torch_fairness
 ```
+
 ### Hide cell in notebook
 
 Edit cell metadat and add "nbsphinx": "hidden"
