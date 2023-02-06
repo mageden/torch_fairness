@@ -29,7 +29,7 @@ class TestConditionalUseAccuracyParity(unittest.TestCase):
         sensitive_map = SensitiveMap(
             SensitiveAttribute(majority=0, minority=[1], name="TestSensitive")
         )
-        self.metric = ConditionalUseAccuracyParity(sensitive_map=sensitive_map)
+        self.metric = ConditionalUseAccuracyParity(sensitive_map=sensitive_map, use_hard_threshold=True)
 
     def tearDown(self) -> None:
         self.metric = None
@@ -56,7 +56,7 @@ class TestPredictiveParity(unittest.TestCase):
         sensitive_map = SensitiveMap(
             SensitiveAttribute(majority=0, minority=[1], name="TestSensitive")
         )
-        self.metric = PredictiveParity(sensitive_map=sensitive_map)
+        self.metric = PredictiveParity(sensitive_map=sensitive_map, use_hard_threshold=True)
 
     def tearDown(self) -> None:
         self.metric = None
@@ -83,7 +83,7 @@ class TestAccuracyEquality(unittest.TestCase):
         sensitive_map = SensitiveMap(
             SensitiveAttribute(majority=0, minority=[1], name="TestSensitive")
         )
-        self.metric = AccuracyEquality(sensitive_map=sensitive_map)
+        self.metric = AccuracyEquality(sensitive_map=sensitive_map, use_hard_threshold=True)
 
     def tearDown(self) -> None:
         self.metric = None
@@ -110,7 +110,7 @@ class TestEqualizedOdds(unittest.TestCase):
         sensitive_map = SensitiveMap(
             SensitiveAttribute(majority=0, minority=[1], name="TestSensitive")
         )
-        self.metric = EqualizedOdds(sensitive_map=sensitive_map)
+        self.metric = EqualizedOdds(sensitive_map=sensitive_map, use_hard_threshold=True)
 
     def tearDown(self) -> None:
         self.metric = None
@@ -137,7 +137,7 @@ class TestEqualOpportunity(unittest.TestCase):
         sensitive_map = SensitiveMap(
             SensitiveAttribute(majority=0, minority=[1], name="TestSensitive")
         )
-        self.metric = EqualOpportunity(sensitive_map=sensitive_map)
+        self.metric = EqualOpportunity(sensitive_map=sensitive_map, use_hard_threshold=True)
 
     def tearDown(self) -> None:
         self.metric = None
@@ -164,7 +164,7 @@ class TestFalsePositiveRateBalance(unittest.TestCase):
         sensitive_map = SensitiveMap(
             SensitiveAttribute(majority=0, minority=[1], name="TestSensitive")
         )
-        self.metric = FalsePositiveRateBalance(sensitive_map=sensitive_map)
+        self.metric = FalsePositiveRateBalance(sensitive_map=sensitive_map, use_hard_threshold=True)
 
     def tearDown(self) -> None:
         self.metric = None
@@ -230,7 +230,7 @@ class TestDemographicParity(unittest.TestCase):
     def test_threshold(self):
         pred = torch.tensor([-1, 1, -1, -1]).unsqueeze(1)
         sensitive = torch.tensor([[1, 1, 0, 0], [0, 0, 1, 1]]).T
-        dp = DemographicParity(sensitive_map=self.sensitive_map, threshold=0)
+        dp = DemographicParity(sensitive_map=self.sensitive_map, threshold=0, use_hard_threshold=True)
         result = dp.forward(pred, sensitive)
         self.assertEqual(result.item(), torch.tensor(0.5))
 
@@ -242,7 +242,7 @@ class TestSmoothedEmpiricalDifferentialFairness(unittest.TestCase):
             SensitiveAttribute(minority=[1], majority=0, name="tests")
         )
         cls.sedf = SmoothedEmpiricalDifferentialFairness(
-            sensitive_map=cls.sensitive_map
+            sensitive_map=cls.sensitive_map, use_hard_threshold=True
         )
 
     @classmethod
@@ -286,7 +286,7 @@ class TestBalancedPositive(unittest.TestCase):
         cls.sensitive_map = SensitiveMap(
             SensitiveAttribute(minority=[1], majority=0, name="tests")
         )
-        cls.bp = BalancedPositive(sensitive_map=cls.sensitive_map)
+        cls.bp = BalancedPositive(sensitive_map=cls.sensitive_map, use_hard_threshold=True)
 
     @classmethod
     def tearDown(cls):
@@ -323,7 +323,7 @@ class TestBalancedNegative(unittest.TestCase):
         cls.sensitive_map = SensitiveMap(
             SensitiveAttribute(minority=[1], majority=0, name="tests")
         )
-        cls.bn = BalancedNegative(sensitive_map=cls.sensitive_map)
+        cls.bn = BalancedNegative(sensitive_map=cls.sensitive_map, use_hard_threshold=True)
 
     @classmethod
     def tearDown(cls):
