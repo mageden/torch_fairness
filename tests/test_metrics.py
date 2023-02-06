@@ -6,6 +6,7 @@ import numpy as np
 from torch_fairness.data import SensitiveAttribute
 from torch_fairness.data import SensitiveMap
 
+from torch_fairness.metrics import Threshold
 from torch_fairness.metrics import MinimaxFairness
 from torch_fairness.metrics import FalsePositiveRateBalance
 from torch_fairness.metrics import EqualOpportunity
@@ -22,6 +23,27 @@ from torch_fairness.metrics import MeanDifferences
 from torch_fairness.metrics import CrossPairDistance
 from torch_fairness.metrics import MMDFairness
 from torch_fairness.metrics import AbsoluteCorrelation
+
+
+class TestThreshold(unittest.TestCase):
+    def test_soft_threshold_value(self):
+        x = torch.tensor([-1., 0., 1.], requires_grad=True)
+        observed = Threshold(threshold=0., use_hard_threshold=False, alpha=25.)(x).detach().numpy().tolist()
+        expected = [0.0000, 0.5000, 1.0000]
+        for i, j in zip(observed, expected):
+            self.assertAlmostEqual(i, j, 4)
+
+    def test_hard_threshold_value(self):
+        x = torch.tensor([-1., 0., 1.], requires_grad=True)
+        observed = Threshold(threshold=0., use_hard_threshold=True)(x).detach().numpy().tolist()
+        expected = [0., 0., 1.]
+        for i, j in zip(observed, expected):
+            self.assertAlmostEqual(i, j, 4)
+
+    def test_hard_threshold_grad(self):
+        x = torch.tensor([0.], requires_grad=True)
+        observed = Threshold(threshold=0., use_hard_threshold=True)(x)
+        self.assertTrue(observed.requires_grad)
 
 
 class TestConditionalUseAccuracyParity(unittest.TestCase):
