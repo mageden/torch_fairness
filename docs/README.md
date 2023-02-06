@@ -1,13 +1,5 @@
 # README
 
-Add badges - https://github.com/dwyl/repo-badges
-
-- status: stable
-- license: ...
-- codecov: ...
-- code style: ... (black)
-
-
 ## Tools
 
 ### Documentation
